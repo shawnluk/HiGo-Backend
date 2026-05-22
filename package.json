@@ -1,0 +1,16 @@
+{
+  "name": "unitone-backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backend API for the UnitOne uni-app frontend.",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node src/server.js",
+    "start": "node src/server.js",
+    "test": "node test/api.test.js"
+  },
+  "engines": {
+    "node": ">=16.14"
+  },
+  "license": "UNLICENSED"
+}
