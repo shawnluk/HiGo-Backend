@@ -1,4 +1,4 @@
-const crypto = require('node:crypto');
+import crypto from 'node:crypto';
 
 function base64url(value) {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -14,7 +14,7 @@ function signToken(payload, secret) {
   return `${header}.${body}.${signature}`;
 }
 
-function login(credentials, config) {
+export function login(credentials, config) {
   const username = String(credentials.username || '').trim();
   const password = String(credentials.password || '').trim();
 
@@ -40,5 +40,3 @@ function login(credentials, config) {
     displayName: username,
   };
 }
-
-module.exports = { login };

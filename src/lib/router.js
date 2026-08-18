@@ -1,9 +1,9 @@
-function normalizePath(pathname) {
+export function normalizePath(pathname) {
   if (!pathname || pathname === '/') return '/';
   return pathname.replace(/\/+$/, '') || '/';
 }
 
-function createRouter() {
+export function createRouter() {
   const routes = [];
 
   function add(method, path, handler) {
@@ -24,5 +24,3 @@ function createRouter() {
     },
   };
 }
-
-module.exports = { createRouter, normalizePath };

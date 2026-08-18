@@ -2,6 +2,7 @@
   "name": "unitone-backend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Backend API for the UnitOne uni-app frontend.",
   "main": "src/server.js",
   "scripts": {

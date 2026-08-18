@@ -1,4 +1,4 @@
-const seedMomentPosts = [
+export const seedMomentPosts = [
   {
     id: 1,
     name: '张三三',
@@ -67,5 +67,3 @@ const seedMomentPosts = [
     ],
   },
 ];
-
-module.exports = { seedMomentPosts };

@@ -1,10 +1,8 @@
-const { ok } = require('../lib/http');
-const { login } = require('../services/auth-service');
+import { ok } from '../lib/http.js';
+import { login } from '../services/auth-service.js';
 
-function registerAuthRoutes(router) {
+export function registerAuthRoutes(router) {
   router.post('/api/v1/auth/login', ({ body, config, res }) => {
     ok(res, login(body, config));
   });
 }
-
-module.exports = { registerAuthRoutes };

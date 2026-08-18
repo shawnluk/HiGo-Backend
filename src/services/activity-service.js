@@ -1,5 +1,5 @@
-const crypto = require('node:crypto');
-const { COS_TEST, seedActivities } = require('../data/activities');
+import crypto from 'node:crypto';
+import { COS_TEST, seedActivities } from '../data/activities.js';
 
 const activities = seedActivities.map((activity) => ({ ...activity }));
 
@@ -57,7 +57,7 @@ function buildFeeNote(price) {
   return `费用 ¥${raw}/人`;
 }
 
-function listActivities(query = {}) {
+export function listActivities(query = {}) {
   let result = [...activities];
 
   const categoryId = query.category_id || query.categoryId;
@@ -83,7 +83,7 @@ function listActivities(query = {}) {
   return result.slice(offset, offset + limit);
 }
 
-function createActivity(payload = {}) {
+export function createActivity(payload = {}) {
   const title = String(payload.title || '').trim();
   if (!title) {
     const error = new Error('Activity title is required');
@@ -121,5 +121,3 @@ function createActivity(payload = {}) {
   activities.unshift(activity);
   return activity;
 }
-
-module.exports = { createActivity, listActivities };

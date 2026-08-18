@@ -1,8 +1,8 @@
-const { seedMessages } = require('../data/messages');
+import { seedMessages } from '../data/messages.js';
 
 const messages = seedMessages.map((message) => ({ ...message }));
 
-function listMessages(query = {}) {
+export function listMessages(query = {}) {
   let result = [...messages];
 
   if (query.read !== undefined) {
@@ -16,5 +16,3 @@ function listMessages(query = {}) {
 
   return result;
 }
-
-module.exports = { listMessages };

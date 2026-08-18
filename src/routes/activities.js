@@ -1,7 +1,7 @@
-const { ok } = require('../lib/http');
-const { createActivity, listActivities } = require('../services/activity-service');
+import { ok } from '../lib/http.js';
+import { createActivity, listActivities } from '../services/activity-service.js';
 
-function registerActivityRoutes(router) {
+export function registerActivityRoutes(router) {
   router.get('/api/v1/activities', ({ query, res }) => {
     ok(res, listActivities(query));
   });
@@ -10,5 +10,3 @@ function registerActivityRoutes(router) {
     ok(res, createActivity(body), 'created', 201);
   });
 }
-
-module.exports = { registerActivityRoutes };

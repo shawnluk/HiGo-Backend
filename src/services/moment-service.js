@@ -1,8 +1,8 @@
-const { seedMomentPosts } = require('../data/moment-posts');
+import { seedMomentPosts } from '../data/moment-posts.js';
 
 const posts = seedMomentPosts.map((post) => ({ ...post }));
 
-function listMomentPosts(query = {}) {
+export function listMomentPosts(query = {}) {
   let result = [...posts];
   const keyword = String(query.keyword || query.q || '').trim().toLowerCase();
 
@@ -18,5 +18,3 @@ function listMomentPosts(query = {}) {
   const limit = Number(query.limit) > 0 ? Number(query.limit) : result.length;
   return result.slice(offset, offset + limit);
 }
-
-module.exports = { listMomentPosts };

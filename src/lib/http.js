@@ -1,12 +1,12 @@
 const MAX_BODY_BYTES = 1024 * 1024;
 
-function setCorsHeaders(res, config) {
+export function setCorsHeaders(res, config) {
   res.setHeader('Access-Control-Allow-Origin', config.corsOrigin || '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 }
 
-function sendJson(res, statusCode, payload) {
+export function sendJson(res, statusCode, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
@@ -15,7 +15,7 @@ function sendJson(res, statusCode, payload) {
   res.end(body);
 }
 
-function ok(res, data, message = 'ok', statusCode = 200) {
+export function ok(res, data, message = 'ok', statusCode = 200) {
   sendJson(res, statusCode, {
     code: 0,
     success: true,
@@ -24,7 +24,7 @@ function ok(res, data, message = 'ok', statusCode = 200) {
   });
 }
 
-function fail(res, statusCode, message, code = statusCode) {
+export function fail(res, statusCode, message, code = statusCode) {
   sendJson(res, statusCode, {
     code,
     success: false,
@@ -33,7 +33,7 @@ function fail(res, statusCode, message, code = statusCode) {
   });
 }
 
-function readJsonBody(req) {
+export function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let total = 0;
@@ -75,7 +75,7 @@ function readJsonBody(req) {
   });
 }
 
-function queryObject(searchParams) {
+export function queryObject(searchParams) {
   const query = {};
   for (const [key, value] of searchParams.entries()) {
     if (query[key] === undefined) {
@@ -88,12 +88,3 @@ function queryObject(searchParams) {
   }
   return query;
 }
-
-module.exports = {
-  fail,
-  ok,
-  queryObject,
-  readJsonBody,
-  sendJson,
-  setCorsHeaders,
-};

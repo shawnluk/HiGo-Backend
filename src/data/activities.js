@@ -1,9 +1,9 @@
-const COS_TEST = 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test';
+export const COS_TEST = 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test';
 
-const seedActivities = [
+export const seedActivities = [
   {
     category_id: 1,
-    name: '1-1',
+    activitiy_id: 1,
     isActive: false,
     tagText: '约球',
     cover: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&w=900&q=80',
@@ -27,7 +27,7 @@ const seedActivities = [
   },
   {
     category_id: 1,
-    name: '1-2',
+    activitiy_id: 2,
     isActive: false,
     tagText: '约球',
     cover: 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=900&q=80',
@@ -51,7 +51,7 @@ const seedActivities = [
   },
   {
     category_id: 2,
-    name: '2-2',
+    activitiy_id: 3,
     isActive: false,
     tagText: '观影',
     cover: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=900&q=80',
@@ -75,7 +75,7 @@ const seedActivities = [
   },
   {
     category_id: 3,
-    name: '3-3',
+    activitiy_id: 4,
     isActive: false,
     tagText: '户外',
     cover: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=900&q=80',
@@ -98,8 +98,8 @@ const seedActivities = [
     ],
   },
   {
-    category_id: 4,
-    name: '4-4',
+    category_id: 3,
+    activitiy_id: 5,
     isActive: false,
     tagText: '闲聊',
     cover: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=80',
@@ -123,7 +123,7 @@ const seedActivities = [
   },
   {
     category_id: 5,
-    name: '5-5',
+    activitiy_id: 6,
     isActive: false,
     tagText: '艺术',
     cover: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=900&q=80',
@@ -146,5 +146,3 @@ const seedActivities = [
     ],
   },
 ];
-
-module.exports = { COS_TEST, seedActivities };

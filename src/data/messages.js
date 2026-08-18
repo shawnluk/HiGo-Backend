@@ -1,4 +1,4 @@
-const seedMessages = [
+export const seedMessages = [
   {
     id: 1,
     type: '系统公告',
@@ -32,5 +32,3 @@ const seedMessages = [
     read: true,
   },
 ];
-
-module.exports = { seedMessages };

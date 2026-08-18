@@ -1,10 +1,8 @@
-const { ok } = require('../lib/http');
-const { listMomentPosts } = require('../services/moment-service');
+import { ok } from '../lib/http.js';
+import { listMomentPosts } from '../services/moment-service.js';
 
-function registerMomentRoutes(router) {
+export function registerMomentRoutes(router) {
   router.get('/api/v1/moment/posts', ({ query, res }) => {
     ok(res, listMomentPosts(query));
   });
 }
-
-module.exports = { registerMomentRoutes };

@@ -1,18 +1,18 @@
-const http = require('node:http');
-const { URL } = require('node:url');
-const { getConfig } = require('./config');
-const { createRouter } = require('./lib/router');
-const {
+import http from 'node:http';
+import { URL } from 'node:url';
+import { getConfig } from './config.js';
+import { createRouter } from './lib/router.js';
+import {
   fail,
   ok,
   queryObject,
   readJsonBody,
   setCorsHeaders,
-} = require('./lib/http');
-const { registerActivityRoutes } = require('./routes/activities');
-const { registerAuthRoutes } = require('./routes/auth');
-const { registerMessageRoutes } = require('./routes/messages');
-const { registerMomentRoutes } = require('./routes/moment');
+} from './lib/http.js';
+import { registerActivityRoutes } from './routes/activities.js';
+import { registerAuthRoutes } from './routes/auth.js';
+import { registerMessageRoutes } from './routes/messages.js';
+import { registerMomentRoutes } from './routes/moment.js';
 
 function registerRoutes(router) {
   router.get('/health', ({ res }) => {
@@ -29,7 +29,7 @@ function registerRoutes(router) {
   registerMomentRoutes(router);
 }
 
-function createApp(config = getConfig()) {
+export function createApp(config = getConfig()) {
   const router = createRouter();
   registerRoutes(router);
 
@@ -69,5 +69,3 @@ function createApp(config = getConfig()) {
     }
   });
 }
-
-module.exports = { createApp, registerRoutes };
