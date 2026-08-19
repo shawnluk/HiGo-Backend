@@ -88,7 +88,7 @@ async function main() {
       assert.ok(body.data.length >= 1);
       assert.equal(typeof body.data[0].title, 'string');
       assert.equal(typeof body.data[0].location_text, 'string');
-      assert.ok(Array.isArray(body.data[0].joinAvatars));
+      assert.equal(typeof body.data[0].description, 'string');
     } finally {
       await app.close();
     }
@@ -101,19 +101,19 @@ async function main() {
         method: 'POST',
         body: {
           title: '测试活动',
-          type: '户外出游',
+          category_id: 3,
           time: '2026-05-22 19:30',
           location: '深圳湾公园',
           price: '30',
-          description: '<p>一起散步</p>',
+          description: '一起散步',
         },
       });
 
       assert.equal(statusCode, 201);
       assert.equal(body.data.title, '测试活动');
-      assert.equal(body.data.tagText, '户外');
+      assert.equal(body.data.tag_text, '户外');
       assert.equal(body.data.time_text, '2026-05-22 19:30:00');
-      assert.deepEqual(body.data.detail_paragraphs, ['一起散步']);
+      assert.equal(body.data.description, '一起散步');
     } finally {
       await app.close();
     }

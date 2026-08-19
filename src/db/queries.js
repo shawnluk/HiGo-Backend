@@ -11,8 +11,8 @@ export const LIST_ACTIVITIES = `
 
 export const INSERT_ACTIVITY = `
   INSERT INTO activities
-    (category_id, is_active, tag_text, cover, title, location_text, time_text, fee_note, org_avatar, org_name, join_count, detail_paragraphs, join_avatars)
-  VALUES (?, 0, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)
+    (category_id, tag_text, cover, title, location_text, time_text, fee_note, description, org_avatar, org_name, creator_id, status)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
 `;
 
 // ============================================

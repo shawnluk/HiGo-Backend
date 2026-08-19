@@ -15,19 +15,19 @@ USE unitone;
 CREATE TABLE IF NOT EXISTS activities (
   activity_id       INT AUTO_INCREMENT PRIMARY KEY,
   category_id       INT          NOT NULL DEFAULT 0,
-  is_active         TINYINT(1)   NOT NULL DEFAULT 0,
-  tag_text          VARCHAR(50)  NOT NULL DEFAULT '',
-  cover             VARCHAR(500) NOT NULL DEFAULT '',
   title             VARCHAR(200) NOT NULL,
+  cover             VARCHAR(500) NOT NULL DEFAULT '',
+  tag_text          VARCHAR(50)  NOT NULL DEFAULT '',
   location_text     VARCHAR(500) NOT NULL DEFAULT '',
   time_text         VARCHAR(50)  NOT NULL DEFAULT '',
   fee_note          VARCHAR(200) NOT NULL DEFAULT '',
+  description       TEXT         NOT NULL,
   org_avatar        VARCHAR(500) NOT NULL DEFAULT '',
   org_name          VARCHAR(100) NOT NULL DEFAULT '',
-  join_count        INT          NOT NULL DEFAULT 0,
-  detail_paragraphs JSON         NOT NULL,
-  join_avatars      JSON         NOT NULL,
+  creator_id        INT          NOT NULL DEFAULT 0,
+  status            TINYINT(1)   NOT NULL DEFAULT 0,
   created_at        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   INDEX idx_category_id (category_id),
   INDEX idx_tag_text (tag_text),
@@ -126,30 +126,18 @@ CREATE TABLE IF NOT EXISTS moment_post_comments (
 -- Seed Data: Activities
 -- ============================================
 
-INSERT INTO activities (activity_id, category_id, is_active, tag_text, cover, title, location_text, time_text, fee_note, org_avatar, org_name, join_count, detail_paragraphs, join_avatars) VALUES
-(1, 1, 0, '约球', 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&w=900&q=80', '周三晚南山羽毛球局（新手友好）', '深圳市南山区科苑路15号 深圳湾体育中心羽毛球馆', '2026-04-24 19:30:00', '场地费 AA，约 ¥35/人（球拍可租借）', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', '阿Ken', 10,
- '["新手友好局，双打轮转为主，现场会简单讲解规则和热身。","请穿运动鞋入场；自带拍或现场租借均可，羽球费用当场分摊。","开始前 15 分钟在场馆入口集合，迟到请在群里说一声方便留位。"]',
- '["https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/flag_007_ll.png","https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000108_r.png","https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000103_r.png"]'),
+INSERT INTO activities (activity_id, category_id, tag_text, cover, title, location_text, time_text, fee_note, description, org_avatar, org_name) VALUES
+(1, 1, '约球', 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&w=900&q=80', '周三晚南山羽毛球局（新手友好）', '深圳市南山区科苑路15号 深圳湾体育中心羽毛球馆', '2026-04-24 19:30:00', '场地费 AA，约 ¥35/人（球拍可租借）', '新手友好局，双打轮转为主，现场会简单讲解规则和热身。\n请穿运动鞋入场；自带拍或现场租借均可，羽球费用当场分摊。\n开始前 15 分钟在场馆入口集合，迟到请在群里说一声方便留位。', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', '阿Ken'),
 
-(2, 1, 0, '约球', 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=900&q=80', '福田5v5篮球夜场（缺2人）', '深圳市福田区福华三路88号 市民中心篮球公园', '2026-04-26 20:00:00', '场地灯光费 AA，约 ¥20/人', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', 'Mia篮球手', 10,
- '["全场 5v5，目前还差 2 人锁场，欢迎中等强度球友。","请自备饮用水与毛巾；分队随机抽签，打到闭馆或体力耗尽为止。","雨天若露天场地关闭，会提前 2 小时在群里通知并改期。"]',
- '["https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/flag_007_ll.png","https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000108_r.png","https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000103_r.png"]'),
+(2, 1, '约球', 'https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&w=900&q=80', '福田5v5篮球夜场（缺2人）', '深圳市福田区福华三路88号 市民中心篮球公园', '2026-04-26 20:00:00', '场地灯光费 AA，约 ¥20/人', '全场 5v5，目前还差 2 人锁场，欢迎中等强度球友。\n请自备饮用水与毛巾；分队随机抽签，打到闭馆或体力耗尽为止。\n雨天若露天场地关闭，会提前 2 小时在群里通知并改期。', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', 'Mia篮球手'),
 
-(3, 2, 0, '观影', 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=900&q=80', 'IMAX观影《沙丘2》拼单场', '深圳市南山区海德三道85号 万象天地百老汇影城', '2026-04-27 15:10:00', '票价自理（选座后群内同步付款）', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', '电影小牧', 11,
- '["已锁定 IMAX 黄金场次，座位尽量挨在一起；开场前 20 分钟取票口集合。","禁止屏摄；观影后可自愿一起去楼下咖啡聊聊剧情。","临时跳车请提前一天说明，方便补位。"]',
- '["https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/flag_007_ll.png","https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000108_r.png","https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000103_r.png"]'),
+(3, 2, '观影', 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=900&q=80', 'IMAX观影《沙丘2》拼单场', '深圳市南山区海德三道85号 万象天地百老汇影城', '2026-04-27 15:10:00', '票价自理（选座后群内同步付款）', '已锁定 IMAX 黄金场次，座位尽量挨在一起；开场前 20 分钟取票口集合。\n禁止屏摄；观影后可自愿一起去楼下咖啡聊聊剧情。\n临时跳车请提前一天说明，方便补位。', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', '电影小牧'),
 
-(4, 3, 0, '户外', 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=900&q=80', '梧桐山轻徒步看日落（8km）', '深圳市罗湖区莲塘街道 梧桐山风景名胜区北门', '2026-04-28 14:30:00', '门票与补给自理；建议预算 ¥50 内', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', '山野阿泽', 12,
- '["轻度路线约 8km，累计爬升适中，适合有运动习惯的伙伴。","请穿防滑徒步鞋，带够水和帽子；日落时段山顶风大注意保暖。","集合请准时，迟到会在北门牌坊处留人等 10 分钟。"]',
- '["https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000100_r_w.png","https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000102_r_ll.png","https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000109_r.png"]'),
+(4, 3, '户外', 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=900&q=80', '梧桐山轻徒步看日落（8km）', '深圳市罗湖区莲塘街道 梧桐山风景名胜区北门', '2026-04-28 14:30:00', '门票与补给自理；建议预算 ¥50 内', '轻度路线约 8km，累计爬升适中，适合有运动习惯的伙伴。\n请穿防滑徒步鞋，带够水和帽子；日落时段山顶风大注意保暖。\n集合请准时，迟到会在北门牌坊处留人等 10 分钟。', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', '山野阿泽'),
 
-(5, 3, 0, '闲聊', 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=80', '下班后Coffee Chat：产品x设计交流', '深圳市南山区粤海街道 科技园南区星巴克臻选店', '2026-04-25 19:00:00', '饮品自理', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', 'Luna产品喵', 13,
- '["轻松圆桌，产品和设计同学分享近期踩坑与协作心得。","不设固定议程，欢迎带一个问题或一个小案例来聊。","店内座位先到先得，若满座可换隔壁咖啡店继续。"]',
- '["https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/flag_007_ll.png","https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000108_r.png","https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000103_r.png"]'),
+(5, 3, '闲聊', 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=80', '下班后Coffee Chat：产品x设计交流', '深圳市南山区粤海街道 科技园南区星巴克臻选店', '2026-04-25 19:00:00', '饮品自理', '轻松圆桌，产品和设计同学分享近期踩坑与协作心得。\n不设固定议程，欢迎带一个问题或一个小案例来聊。\n店内座位先到先得，若满座可换隔壁咖啡店继续。', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', 'Luna产品喵'),
 
-(6, 5, 0, '艺术', 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=900&q=80', '周末油画体验课：莫兰迪静物', '深圳市福田区华强北街道 深业上城L2 艺术工坊', '2026-04-27 10:00:00', '材料费 ¥128/人（含画布与颜料）', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', '木子画室', 14,
- '["零基础友好，老师演示调色与笔触后独立完成一幅静物小画。","画室提供围裙与颜料，建议穿深色上衣以防沾染。","作品可当日带走；如需烘干装裱可现场加购。"]',
- '["https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000100_r_w.png","https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000102_r_ll.png","https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/e_000109_r.png"]');
+(6, 5, '艺术', 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=900&q=80', '周末油画体验课：莫兰迪静物', '深圳市福田区华强北街道 深业上城L2 艺术工坊', '2026-04-27 10:00:00', '材料费 ¥128/人（含画布与颜料）', '零基础友好，老师演示调色与笔触后独立完成一幅静物小画。\n画室提供围裙与颜料，建议穿深色上衣以防沾染。\n作品可当日带走；如需烘干装裱可现场加购。', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', '木子画室');
 
 -- ============================================
 -- Seed Data: Messages

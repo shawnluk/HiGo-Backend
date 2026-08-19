@@ -16,32 +16,6 @@ function normalizeTime(value) {
   return str;
 }
 
-function stripHtml(value) {
-  return String(value || '')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/p>/gi, '\n')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .trim();
-}
-
-function descriptionToParagraphs(description, title) {
-  const text = stripHtml(description);
-  const lines = text
-    .split(/\n+/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  if (lines.length) return lines;
-  return [
-    `欢迎参加「${title}」。`,
-    '具体流程与注意事项以后续主办方通知为准。',
-  ];
-}
-
 function buildFeeNote(price) {
   const raw = String(price ?? '').trim();
   if (!raw || Number(raw) === 0) return '免费';
@@ -49,22 +23,22 @@ function buildFeeNote(price) {
 }
 
 function mapActivity(row) {
-  // console.log(row);
   return {
     activity_id: row.activity_id,
     category_id: row.category_id,
-    isActive: Boolean(row.is_active),
-    tagText: row.tag_text,
-    cover: row.cover,
     title: row.title,
+    cover: row.cover,
+    tag_text: row.tag_text,
     location_text: row.location_text,
     time_text: row.time_text,
     fee_note: row.fee_note,
+    description: row.description,
     org_avatar: row.org_avatar,
     org_name: row.org_name,
-    joinCount: row.join_count,
-    detail_paragraphs: row.detail_paragraphs || [],
-    joinAvatars: row.join_avatars || [],
+    creator_id: row.creator_id,
+    status: row.status,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
   };
 }
 
@@ -134,9 +108,10 @@ export async function createActivity(payload = {}) {
   const location_text = String(payload.location || payload.location_text || '').trim() || '待定';
   const time_text = normalizeTime(payload.time || payload.time_text);
   const fee_note = payload.fee_note || buildFeeNote(payload.price);
+  const description = String(payload.description || '').trim();
   const org_avatar = payload.org_avatar || `${COS_TEST}/logo.png`;
   const org_name = payload.org_name || 'UnitOne 用户';
-  const detail_paragraphs = descriptionToParagraphs(payload.description, title);
+  const creator_id = Number(payload.creator_id) || 0;
 
   const [result] = await pool.query(INSERT_ACTIVITY, [
     category.category_id,
@@ -146,27 +121,27 @@ export async function createActivity(payload = {}) {
     location_text,
     time_text,
     fee_note,
+    description,
     org_avatar,
     org_name,
-    JSON.stringify(detail_paragraphs),
-    JSON.stringify([]),
+    creator_id,
   ]);
 
   return {
-    id: result.insertId,
+    activity_id: result.insertId,
     category_id: category.category_id,
-    isActive: false,
-    tagText: category.tag_text,
-    cover,
     title,
+    cover,
+    tag_text: category.tag_text,
     location_text,
     time_text,
     fee_note,
-    detail_paragraphs,
+    description,
     org_avatar,
     org_name,
-    joinCount: 0,
-    joinAvatars: [],
-    createdAt: new Date().toISOString(),
+    creator_id,
+    status: 0,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   };
 }
