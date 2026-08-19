@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { URL } from 'node:url';
 import { getConfig } from './config.js';
+import { initPool } from './lib/db.js';
 import { createRouter } from './lib/router.js';
 import {
   fail,
@@ -11,6 +12,7 @@ import {
 } from './lib/http.js';
 import { registerActivityRoutes } from './routes/activities.js';
 import { registerAuthRoutes } from './routes/auth.js';
+import { registerCategoryRoutes } from './routes/categories.js';
 import { registerMessageRoutes } from './routes/messages.js';
 import { registerMomentRoutes } from './routes/moment.js';
 
@@ -24,12 +26,15 @@ function registerRoutes(router) {
   });
 
   registerAuthRoutes(router);
+  registerCategoryRoutes(router);
   registerActivityRoutes(router);
   registerMessageRoutes(router);
   registerMomentRoutes(router);
 }
 
 export function createApp(config = getConfig()) {
+  initPool(config);
+
   const router = createRouter();
   registerRoutes(router);
 

@@ -1,16 +1,7 @@
-import crypto from 'node:crypto';
-import { COS_TEST, seedActivities } from '../data/activities.js';
+import { getPool } from '../lib/db.js';
+import { LIST_ACTIVITIES, INSERT_ACTIVITY, LIST_CATEGORIES } from '../db/queries.js';
 
-const activities = seedActivities.map((activity) => ({ ...activity }));
-
-const typeToCategory = {
-  运动健身: { category_id: 1, tagText: '约球' },
-  演出观赛: { category_id: 2, tagText: '观影' },
-  户外出游: { category_id: 3, tagText: '户外' },
-  线下聚会: { category_id: 4, tagText: '闲聊' },
-  线上活动: { category_id: 6, tagText: '订阅' },
-  其他: { category_id: 4, tagText: '其他' },
-};
+const COS_TEST = 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test';
 
 function toPositiveInt(value, fallback) {
   const n = Number(value);
@@ -57,33 +48,67 @@ function buildFeeNote(price) {
   return `费用 ¥${raw}/人`;
 }
 
-export function listActivities(query = {}) {
-  let result = [...activities];
+function mapActivity(row) {
+  // console.log(row);
+  return {
+    activity_id: row.activity_id,
+    category_id: row.category_id,
+    isActive: Boolean(row.is_active),
+    tagText: row.tag_text,
+    cover: row.cover,
+    title: row.title,
+    location_text: row.location_text,
+    time_text: row.time_text,
+    fee_note: row.fee_note,
+    org_avatar: row.org_avatar,
+    org_name: row.org_name,
+    joinCount: row.join_count,
+    detail_paragraphs: row.detail_paragraphs || [],
+    joinAvatars: row.join_avatars || [],
+  };
+}
+
+export async function listActivities(query = {}) {
+  const pool = getPool();
+  const conditions = [];
+  const params = [];
 
   const categoryId = query.category_id || query.categoryId;
   if (categoryId) {
-    result = result.filter((item) => Number(item.category_id) === Number(categoryId));
+    conditions.push('category_id = ?');
+    params.push(Number(categoryId));
   }
 
   if (query.tagText) {
-    result = result.filter((item) => item.tagText === query.tagText || item.tag_text === query.tagText);
+    conditions.push('tag_text = ?');
+    params.push(query.tagText);
   }
 
   const keyword = String(query.keyword || query.q || '').trim().toLowerCase();
   if (keyword) {
-    result = result.filter((item) => {
-      return [item.title, item.location_text, item.org_name, item.tagText]
-        .filter(Boolean)
-        .some((field) => String(field).toLowerCase().includes(keyword));
-    });
+    conditions.push('(title LIKE ? OR location_text LIKE ? OR org_name LIKE ? OR tag_text LIKE ?)');
+    const likePattern = `%${keyword}%`;
+    params.push(likePattern, likePattern, likePattern, likePattern);
   }
 
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const offset = Math.max(Number(query.offset) || 0, 0);
-  const limit = toPositiveInt(query.limit, result.length);
-  return result.slice(offset, offset + limit);
+  const limit = toPositiveInt(query.limit, 1000);
+
+  const sql = LIST_ACTIVITIES.replace('{{where}}', where);
+  const [rows] = await pool.query(sql, [...params, limit, offset]);
+
+  return rows.map(mapActivity);
 }
 
-export function createActivity(payload = {}) {
+export async function listCategories() {
+  const pool = getPool();
+  const [rows] = await pool.query(LIST_CATEGORIES);
+  // console.log(rows);
+  return rows;
+}
+
+export async function createActivity(payload = {}) {
   const title = String(payload.title || '').trim();
   if (!title) {
     const error = new Error('Activity title is required');
@@ -91,33 +116,57 @@ export function createActivity(payload = {}) {
     throw error;
   }
 
-  const category = typeToCategory[payload.type] || {
-    category_id: Number(payload.category_id) || 4,
-    tagText: payload.tagText || payload.type || '活动',
-  };
-  const id = `act-${Date.now().toString(36)}-${crypto.randomBytes(3).toString('hex')}`;
+  const categoryId = Number(payload.category_id) || 0;
+  const pool = getPool();
 
-  const activity = {
-    id,
-    category_id: category.category_id,
-    name: id,
-    isActive: false,
-    tagText: category.tagText,
-    cover:
-      String(payload.cover || '').trim() ||
-      'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=900&q=80',
+  const [categories] = await pool.query('SELECT category_id, tag_text FROM activity_categories WHERE category_id = ?', [categoryId]);
+  const category = categories[0];
+  if (!category) {
+    const error = new Error(`Invalid category_id: ${categoryId}`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const cover =
+    String(payload.cover || '').trim() ||
+    'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=900&q=80';
+
+  const location_text = String(payload.location || payload.location_text || '').trim() || '待定';
+  const time_text = normalizeTime(payload.time || payload.time_text);
+  const fee_note = payload.fee_note || buildFeeNote(payload.price);
+  const org_avatar = payload.org_avatar || `${COS_TEST}/logo.png`;
+  const org_name = payload.org_name || 'UnitOne 用户';
+  const detail_paragraphs = descriptionToParagraphs(payload.description, title);
+
+  const [result] = await pool.query(INSERT_ACTIVITY, [
+    category.category_id,
+    category.tag_text,
+    cover,
     title,
-    location_text: String(payload.location || payload.location_text || '').trim() || '待定',
-    time_text: normalizeTime(payload.time || payload.time_text),
-    fee_note: payload.fee_note || buildFeeNote(payload.price),
-    detail_paragraphs: descriptionToParagraphs(payload.description, title),
-    org_avatar: payload.org_avatar || `${COS_TEST}/logo.png`,
-    org_name: payload.org_name || 'UnitOne 用户',
+    location_text,
+    time_text,
+    fee_note,
+    org_avatar,
+    org_name,
+    JSON.stringify(detail_paragraphs),
+    JSON.stringify([]),
+  ]);
+
+  return {
+    id: result.insertId,
+    category_id: category.category_id,
+    isActive: false,
+    tagText: category.tag_text,
+    cover,
+    title,
+    location_text,
+    time_text,
+    fee_note,
+    detail_paragraphs,
+    org_avatar,
+    org_name,
     joinCount: 0,
     joinAvatars: [],
     createdAt: new Date().toISOString(),
   };
-
-  activities.unshift(activity);
-  return activity;
 }

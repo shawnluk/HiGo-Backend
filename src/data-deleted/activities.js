@@ -3,7 +3,7 @@ export const COS_TEST = 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.co
 export const seedActivities = [
   {
     category_id: 1,
-    activitiy_id: 1,
+    activitiy_id: 2,
     isActive: false,
     tagText: '约球',
     cover: 'https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?auto=format&fit=crop&w=900&q=80',
