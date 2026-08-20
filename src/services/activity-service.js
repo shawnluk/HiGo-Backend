@@ -53,9 +53,9 @@ export async function listActivities(query = {}) {
     params.push(Number(categoryId));
   }
 
-  if (query.tagText) {
+  if (query.tag_text) {
     conditions.push('tag_text = ?');
-    params.push(query.tagText);
+    params.push(query.tag_text);
   }
 
   const keyword = String(query.keyword || query.q || '').trim().toLowerCase();
@@ -67,12 +67,21 @@ export async function listActivities(query = {}) {
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const offset = Math.max(Number(query.offset) || 0, 0);
-  const limit = toPositiveInt(query.limit, 1000);
+  const limit = toPositiveInt(query.limit, 10);
+
+  const countSql = `SELECT COUNT(*) AS total FROM activities ${where}`;
+  const [[{ total }]] = await pool.query(countSql, params);
 
   const sql = LIST_ACTIVITIES.replace('{{where}}', where);
   const [rows] = await pool.query(sql, [...params, limit, offset]);
+  
+  // console.log(rows);
 
-  return rows.map(mapActivity);
+  return {
+    items: rows.map(mapActivity),
+    total,
+    hasMore: offset + limit < total,
+  };
 }
 
 export async function listCategories() {

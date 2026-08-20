@@ -5,7 +5,7 @@
 export const LIST_ACTIVITIES = `
   SELECT * FROM activities
   {{where}}
-  ORDER BY created_at DESC
+  ORDER BY created_at ASC
   LIMIT ? OFFSET ?
 `;
 
