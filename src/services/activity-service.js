@@ -1,5 +1,6 @@
 import { getPool } from '../lib/db.js';
-import { LIST_ACTIVITIES, INSERT_ACTIVITY, LIST_CATEGORIES } from '../db/queries.js';
+import { LIST_ACTIVITIES, INSERT_ACTIVITY } from '../db/queries.js';
+import { getCategoryById } from './category-service.js';
 
 const COS_TEST = 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test';
 
@@ -28,7 +29,7 @@ function mapActivity(row) {
     category_id: row.category_id,
     title: row.title,
     cover: row.cover,
-    tag_text: row.tag_text,
+    category_name: row.category_name,
     location_text: row.location_text,
     time_text: row.time_text,
     fee_note: row.fee_note,
@@ -53,14 +54,14 @@ export async function listActivities(query = {}) {
     params.push(Number(categoryId));
   }
 
-  if (query.tag_text) {
-    conditions.push('tag_text = ?');
-    params.push(query.tag_text);
+  if (query.category_name) {
+    conditions.push('category_name = ?');
+    params.push(query.category_name);
   }
 
   const keyword = String(query.keyword || query.q || '').trim().toLowerCase();
   if (keyword) {
-    conditions.push('(title LIKE ? OR location_text LIKE ? OR org_name LIKE ? OR tag_text LIKE ?)');
+    conditions.push('(title LIKE ? OR location_text LIKE ? OR org_name LIKE ? OR category_name LIKE ?)');
     const likePattern = `%${keyword}%`;
     params.push(likePattern, likePattern, likePattern, likePattern);
   }
@@ -84,14 +85,9 @@ export async function listActivities(query = {}) {
   };
 }
 
-export async function listCategories() {
-  const pool = getPool();
-  const [rows] = await pool.query(LIST_CATEGORIES);
-  // console.log(rows);
-  return rows;
-}
-
-export async function createActivity(payload = {}) {
+export async function createActivity(payload = {}, user = {}) {
+  console.log(payload);
+  console.log(user);
   const title = String(payload.title || '').trim();
   if (!title) {
     const error = new Error('Activity title is required');
@@ -99,16 +95,7 @@ export async function createActivity(payload = {}) {
     throw error;
   }
 
-  const categoryId = Number(payload.category_id) || 0;
-  const pool = getPool();
-
-  const [categories] = await pool.query('SELECT category_id, tag_text FROM activity_categories WHERE category_id = ?', [categoryId]);
-  const category = categories[0];
-  if (!category) {
-    const error = new Error(`Invalid category_id: ${categoryId}`);
-    error.statusCode = 400;
-    throw error;
-  }
+  const category = await getCategoryById(payload.category_id);
 
   const cover =
     String(payload.cover || '').trim() ||
@@ -120,28 +107,28 @@ export async function createActivity(payload = {}) {
   const description = String(payload.description || '').trim();
   const org_avatar = payload.org_avatar || `${COS_TEST}/logo.png`;
   const org_name = payload.org_name || 'UnitOne 用户';
-  const creator_id = Number(payload.creator_id) || 0;
+  const creator_id = Number(user.sub) || 0;
 
-  const [result] = await pool.query(INSERT_ACTIVITY, [
-    category.category_id,
-    category.tag_text,
-    cover,
-    title,
-    location_text,
-    time_text,
-    fee_note,
-    description,
-    org_avatar,
-    org_name,
-    creator_id,
-  ]);
-
+  // const [result] = await pool.query(INSERT_ACTIVITY, [
+  //   category.category_id,
+  //   category.category_name,
+  //   cover,
+  //   title,
+  //   location_text,
+  //   time_text,
+  //   fee_note,
+  //   description,
+  //   org_avatar,
+  //   org_name,
+  //   creator_id,
+  // ]);
+  console.log(creator_id);
   return {
     activity_id: result.insertId,
     category_id: category.category_id,
     title,
     cover,
-    tag_text: category.tag_text,
+    category_name: category.category_name,
     location_text,
     time_text,
     fee_note,

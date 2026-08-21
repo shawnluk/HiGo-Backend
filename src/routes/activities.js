@@ -6,7 +6,7 @@ export function registerActivityRoutes(router) {
     ok(res, await listActivities(query));
   });
 
-  router.post('/api/v1/activities', async ({ body, res }) => {
-    ok(res, await createActivity(body), 'created', 201);
+  router.post('/api/v1/activities', async ({ body, req, res }) => {
+    ok(res, await createActivity(body, req.user), 'created', 201);
   });
 }

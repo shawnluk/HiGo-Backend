@@ -15,6 +15,9 @@ import { registerAuthRoutes } from './routes/auth.js';
 import { registerCategoryRoutes } from './routes/categories.js';
 import { registerMessageRoutes } from './routes/messages.js';
 import { registerMomentRoutes } from './routes/moment.js';
+import { verifyToken } from './lib/token.js';
+
+const PUBLIC_PATHS = ['/health', '/api/v1/auth/login', '/api/v1/auth/register', '/api/v1/activities', '/api/v1/categories'];
 
 function registerRoutes(router) {
   router.get('/health', ({ res }) => {
@@ -48,6 +51,17 @@ export function createApp(config = getConfig()) {
     }
 
     const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+
+    if (!PUBLIC_PATHS.includes(requestUrl.pathname)) {
+      try {
+        const authHeader = req.headers['authorization'] || '';
+        const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+        req.user = verifyToken(token, config.jwtSecret);
+      } catch (error) {
+        fail(res, error.statusCode || 401, error.message);
+        return;
+      }
+    }
     const route = router.match(req.method, requestUrl.pathname);
 
     if (!route) {
