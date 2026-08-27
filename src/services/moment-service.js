@@ -21,6 +21,19 @@ function mapMomentPost(row, images, likes, comments) {
   };
 }
 
+/**
+ * 分页查询动态（moment）帖子列表，并补充每个帖子的图片、点赞人、评论。
+ * 支持 keyword/q（模糊匹配 name、activity_title、content）过滤，以及 offset/limit 分页
+ * （limit 缺省或非法时为 1000）。先查询主帖，再并行按帖子 ID 批量查询图片、点赞、评论，
+ * 分类聚合后按顺序组装进每个帖子的返回结构。
+ * @param {Object} [query] 查询参数，可选 keyword（或 q）、offset（起始偏移，默认 0）、
+ *   limit（每页条数，默认 1000）。
+ * @returns {Promise<Array<Object>>}
+ *   返回结构：帖子对象数组，每项含 id、name、avatar、activityTitle、content、images、
+ *   time、likeCount、likes（点赞用户名数组）、comments（评论 {user, text} 数组）。
+ *   无结果时返回空数组。
+ * @throws 无显式异常。
+ */
 export async function listMomentPosts(query = {}) {
   const pool = getPool();
   const conditions = [];

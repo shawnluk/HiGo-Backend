@@ -15,6 +15,7 @@ USE unitone;
 CREATE TABLE IF NOT EXISTS activities (
   activity_id       INT AUTO_INCREMENT PRIMARY KEY,
   category_id       INT          NOT NULL DEFAULT 0,
+  squad_id          INT          NULL COMMENT '关联的小队 squad_id，一个活动只属于一个小队',
   title             VARCHAR(200) NOT NULL,
   cover             VARCHAR(500) NOT NULL DEFAULT '',
   tag_text          VARCHAR(50)  NOT NULL DEFAULT '',
@@ -31,7 +32,10 @@ CREATE TABLE IF NOT EXISTS activities (
 
   INDEX idx_category_id (category_id),
   INDEX idx_tag_text (tag_text),
-  INDEX idx_created_at (created_at)
+  INDEX idx_created_at (created_at),
+  INDEX idx_squad_id (squad_id),
+  CONSTRAINT fk_activity_squad
+    FOREIGN KEY (squad_id) REFERENCES squad(squad_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -123,6 +127,67 @@ CREATE TABLE IF NOT EXISTS moment_post_comments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
+-- Squads
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS squad (
+  squad_id         INT AUTO_INCREMENT PRIMARY KEY,
+  squad_name       VARCHAR(100) NOT NULL,
+  squad_avatar     VARCHAR(500) NOT NULL DEFAULT '',
+  captain_id       INT          NOT NULL DEFAULT 0,
+  vice_captain_id  INT          NULL,
+  intro            VARCHAR(500) NOT NULL DEFAULT '',
+  category_id      INT          NOT NULL DEFAULT 0,
+  max_members      INT          NOT NULL DEFAULT 20,
+  member_count     INT          NOT NULL DEFAULT 0,
+  join_type        TINYINT      NOT NULL DEFAULT 0 COMMENT '0=自由加入, 1=需队长审核',
+  status           TINYINT      NOT NULL DEFAULT 1 COMMENT '0=解散, 1=正常, 2=冻结',
+  invite_code      VARCHAR(20)  NOT NULL DEFAULT '',
+  create_time      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  delete_flag      TINYINT(1)   NOT NULL DEFAULT 0,
+
+  INDEX idx_squad_category (category_id),
+  INDEX idx_invite_code (invite_code),
+  INDEX idx_create_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS squad_member (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  squad_id      INT          NOT NULL,
+  user_id       INT          NOT NULL,
+  member_role   TINYINT     NOT NULL DEFAULT 1 COMMENT '0=队长, 1=普通成员, 2=副队长',
+  member_status TINYINT      NOT NULL DEFAULT 1 COMMENT '0=已退出, 1=在队',
+  join_time     DATETIME     NULL,
+  quit_time     DATETIME     NULL,
+  remark        VARCHAR(200) NOT NULL DEFAULT '',
+  create_time   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  INDEX idx_squad_id (squad_id),
+  INDEX idx_user_id (user_id),
+  CONSTRAINT fk_member_squad
+    FOREIGN KEY (squad_id) REFERENCES squad(squad_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS activity_member (
+  id            INT AUTO_INCREMENT PRIMARY KEY,
+  activity_id   INT        NOT NULL COMMENT '关联的活动 activity_id',
+  user_id       INT        NOT NULL COMMENT '参加活动的用户 user_id',
+  member_status TINYINT    NOT NULL DEFAULT 1 COMMENT '0=未参加, 1=参加',
+  join_time     DATETIME   NULL COMMENT '加入/参加时间',
+  quit_time     DATETIME   NULL COMMENT '退出时间',
+  create_time   DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  update_time   DATETIME   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  INDEX idx_activity_id (activity_id),
+  INDEX idx_user_id (user_id),
+  UNIQUE INDEX uk_activity_user (activity_id, user_id),
+  CONSTRAINT fk_am_activity
+    FOREIGN KEY (activity_id) REFERENCES activities(activity_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
 -- Seed Data: Activities
 -- ============================================
 
@@ -138,6 +203,17 @@ INSERT INTO activities (activity_id, category_id, tag_text, cover, title, locati
 (5, 3, '闲聊', 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=900&q=80', '下班后Coffee Chat：产品x设计交流', '深圳市南山区粤海街道 科技园南区星巴克臻选店', '2026-04-25 19:00:00', '饮品自理', '轻松圆桌，产品和设计同学分享近期踩坑与协作心得。\n不设固定议程，欢迎带一个问题或一个小案例来聊。\n店内座位先到先得，若满座可换隔壁咖啡店继续。', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', 'Luna产品喵'),
 
 (6, 5, '艺术', 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=900&q=80', '周末油画体验课：莫兰迪静物', '深圳市福田区华强北街道 深业上城L2 艺术工坊', '2026-04-27 10:00:00', '材料费 ¥128/人（含画布与颜料）', '零基础友好，老师演示调色与笔触后独立完成一幅静物小画。\n画室提供围裙与颜料，建议穿深色上衣以防沾染。\n作品可当日带走；如需烘干装裱可现场加购。', 'https://unitone-1310134019.cos.ap-guangzhou.myqcloud.com/test/logo.png', '木子画室');
+
+-- ============================================
+-- Seed Data: Activity Members（每个活动的全队在队成员参与记录）
+-- ============================================
+
+INSERT IGNORE INTO activity_member (activity_id, user_id, member_status, join_time)
+SELECT a.activity_id, sm.user_id, 1, a.created_at
+FROM activities a
+JOIN squad_member sm ON sm.squad_id = a.squad_id
+WHERE sm.member_status = 1
+  AND a.squad_id IS NOT NULL;
 
 -- ============================================
 -- Seed Data: Messages
