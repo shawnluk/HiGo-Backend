@@ -92,10 +92,17 @@ export const LIST_MESSAGES = `
 // ============================================
 
 // 分页查询动态列表，{{where}} 由业务层替换筛选条件，按创建时间倒序
+// LEFT JOIN user_profiles 带出发布人昵称/头像，LEFT JOIN activities 带出关联活动标题
 export const LIST_MOMENT_POSTS = `
-  SELECT * FROM moment_posts
+  SELECT
+    mp.id, mp.user_id, mp.activity_id, mp.content, mp.created_at,
+    up.nickname, up.avatar,
+    a.title AS activity_title
+  FROM moment_posts mp
+  LEFT JOIN user_profiles up ON up.user_id = mp.user_id
+  LEFT JOIN activities a ON a.activity_id = mp.activity_id
   {{where}}
-  ORDER BY created_at DESC
+  ORDER BY mp.created_at DESC
   LIMIT ? OFFSET ?
 `;
 
@@ -107,19 +114,76 @@ export const BATCH_POST_IMAGES = `
   ORDER BY post_id, sort_order
 `;
 
-// 批量查询多条动态的点赞用户（用户名）
+// 批量查询多条动态的点赞用户（含点赞者 user_id 与昵称），LEFT JOIN user_profiles 带出实时昵称
 export const BATCH_POST_LIKES = `
-  SELECT post_id, username
-  FROM moment_post_likes
-  WHERE post_id IN (?)
+  SELECT ml.post_id, ml.user_id, up.nickname AS username
+  FROM moment_post_likes ml
+  LEFT JOIN user_profiles up ON up.user_id = ml.user_id
+  WHERE ml.post_id IN (?)
 `;
 
-// 批量查询多条动态的评论（user、text），按动态与创建时间排序
+// 批量查询多条动态的评论（评论人昵称、文本），按动态与创建时间排序
 export const BATCH_POST_COMMENTS = `
-  SELECT post_id, user, text
-  FROM moment_post_comments
-  WHERE post_id IN (?)
-  ORDER BY post_id, created_at
+  SELECT mc.post_id, up.nickname AS \`user\`, mc.text
+  FROM moment_post_comments mc
+  LEFT JOIN user_profiles up ON up.user_id = mc.user_id
+  WHERE mc.post_id IN (?)
+  ORDER BY mc.post_id, mc.created_at
+`;
+
+// 新建一条动态，返回自增 id
+export const INSERT_MOMENT_POST = `
+  INSERT INTO moment_posts (user_id, activity_id, content)
+  VALUES (?, ?, ?)
+`;
+
+// 为动态插入一张图片
+export const INSERT_MOMENT_IMAGE = `
+  INSERT INTO moment_post_images (post_id, sort_order, image_url)
+  VALUES (?, ?, ?)
+`;
+
+// 按 ID 查询单条动态（存在性 / 归属校验）
+export const FIND_MOMENT_POST_BY_ID = `
+  SELECT id, user_id, activity_id, content, created_at
+  FROM moment_posts WHERE id = ?
+`;
+
+// 删除动态（其图片 / 点赞 / 评论经外键 ON DELETE CASCADE 级联删除）
+export const DELETE_MOMENT_POST = `
+  DELETE FROM moment_posts WHERE id = ?
+`;
+
+// 点赞（INSERT IGNORE 保证同一用户同一动态只点赞一次）
+export const INSERT_MOMENT_LIKE = `
+  INSERT IGNORE INTO moment_post_likes (post_id, user_id)
+  VALUES (?, ?)
+`;
+
+// 取消点赞
+export const DELETE_MOMENT_LIKE = `
+  DELETE FROM moment_post_likes WHERE post_id = ? AND user_id = ?
+`;
+
+// 查询某用户是否已点赞某条动态
+export const FIND_MOMENT_LIKE = `
+  SELECT id FROM moment_post_likes WHERE post_id = ? AND user_id = ?
+`;
+
+// 新增评论
+export const INSERT_MOMENT_COMMENT = `
+  INSERT INTO moment_post_comments (post_id, user_id, text)
+  VALUES (?, ?, ?)
+`;
+
+// 按 ID 查询评论归属（作者校验）
+export const FIND_MOMENT_COMMENT_BY_ID = `
+  SELECT id, post_id, user_id FROM moment_post_comments WHERE id = ?
+`;
+
+// 删除评论（仅作者本人）
+export const DELETE_MOMENT_COMMENT = `
+  DELETE FROM moment_post_comments WHERE id = ? AND user_id = ?
 `;
 
 // ============================================

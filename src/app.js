@@ -18,7 +18,14 @@ import { registerMomentRoutes } from './routes/moment.js';
 import { registerSquadRoutes } from './routes/squads.js';
 import { verifyToken } from './lib/token.js';
 
-const PUBLIC_PATHS = ['/health', '/api/v1/auth/login', '/api/v1/auth/register', '/api/v1/activities', '/api/v1/categories'];
+const PUBLIC_PATHS = [
+  '/health',
+  '/api/v1/auth/login',
+  '/api/v1/auth/register',
+  '/api/v1/activities',
+  '/api/v1/categories',
+  '/api/v1/moment/posts',
+];
 
 function registerRoutes(router) {
   router.get('/health', ({ res }) => {
