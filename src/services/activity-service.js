@@ -41,6 +41,7 @@ function mapActivity(row) {
     org_name: row.org_name,
     creator_id: row.creator_id,
     status: row.status,
+    hot: row.hot,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };
