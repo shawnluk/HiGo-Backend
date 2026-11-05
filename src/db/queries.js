@@ -23,7 +23,7 @@ export const INSERT_ACTIVITY_VIEW = `
 `;
 
 // 活动热度 +1，仅在新增浏览记录时调用
-export const INC_ACTIVITY_HOT = `
+export const INC_ACTIVITY_HOT = `1 把活动热度 +1，仅在新增浏览记录时调用
   UPDATE activities
   SET hot = hot + 1
   WHERE activity_id = ?
