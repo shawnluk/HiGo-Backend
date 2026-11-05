@@ -56,16 +56,24 @@ export const FIND_USER_BY_USERNAME = `
   WHERE username = ?
 `;
 
-// 创建用户账号记录
+// 按手机号查询用户，用于注册时手机号查重
+export const FIND_USER_BY_PHONE = `
+  SELECT user_id
+  FROM users
+  WHERE phone = ? AND phone <> ''
+`;
+
+// 创建用户账号记录（手机号为可选字段）
 export const INSERT_USER = `
-  INSERT INTO users (username, password_hash)
-  VALUES (?, ?)
+  INSERT INTO users (username, password_hash, phone)
+  VALUES (?, ?, ?)
 `;
 
 // 为用户创建对应资料记录，register_time 取当前时间
 export const INSERT_USER_PROFILE = `
-  INSERT INTO user_profiles (user_id, nickname, avatar, register_time)
-  VALUES (?, ?, ?, NOW())
+  INSERT INTO user_profiles
+    (user_id, user_no, nickname, avatar, last_login_time, register_time, update_time)
+  VALUES (?, ?, ?, ?, NOW(), NOW(), NOW())
 `;
 
 // 按用户 ID 查询完整资料信息，用于登录/详情返回

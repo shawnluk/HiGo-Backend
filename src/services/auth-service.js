@@ -2,11 +2,17 @@ import { getPool } from '../lib/db.js';
 import { signToken, makeTokenPayload } from '../lib/token.js';
 import {
   FIND_USER_BY_USERNAME,
+  FIND_USER_BY_PHONE,
   FIND_USER_PROFILE_BY_ID,
   INSERT_USER,
   INSERT_USER_PROFILE,
 } from '../db/queries.js';
 import { listMySquads, countActivitiesBySquads } from './squad-service.js';
+
+// 密码规则：长度 6-10 位，仅允许中文、大小写字母、数字及下划线、连字符
+const PASSWORD_MIN_LENGTH = 6;
+const PASSWORD_MAX_LENGTH = 10;
+const PASSWORD_PATTERN = /^[\u4e00-\u9fa5A-Za-z0-9_-]+$/;
 
 // function hashPassword(password, salt) {
 //   const s = salt || crypto.randomBytes(16).toString('hex');
@@ -23,26 +29,37 @@ import { listMySquads, countActivitiesBySquads } from './squad-service.js';
 
 /**
  * 用户注册。
- * 校验用户名非空、密码长度不少于 6 位，并检查用户名是否已存在，均通过后写入用户及其资料记录，
- * 最后签发 JWT 令牌。
+ * 校验用户名非空、密码长度不少于 6 位、手机号格式（可选），并检查用户名与手机号是否已存在，
+ * 均通过后写入用户及其资料记录，最后签发 JWT 令牌。
  * @param {Object} payload 注册参数，包含 username（用户名）、password（密码），
- *   可选 nickname（昵称，缺省时沿用用户名）、avatar（头像地址）。
+ *   可选 phone（手机号）、nickname（昵称，缺省时沿用用户名）、avatar（头像地址）。
  * @param {Object} config 应用配置，需包含 jwtSecret 用于签发令牌。
- * @returns {Promise<{token: string, user_id: number, username: string, nickname: string}>}
- *   返回结构：token（JWT）、user_id（新用户 ID）、username、nickname。
- * @throws {Error} 状态码 400（username 缺失 / 密码长度不足）、409（用户名已存在）。
+ * @returns {Promise<{token: string, user_id: number, user_no: string, username: string, phone: string, nickname: string}>}
+ *   返回结构：token（JWT）、user_id（新用户 ID）、user_no（业务用户编号）、username、phone、nickname。
+ * @throws {Error} 状态码 400（用户名缺失 / 密码长度不足 / 手机号格式错误）、409（用户名或手机号已存在）。
  */
 export async function register(payload, config) {
   const username = String(payload.username || '').trim();
   const password = String(payload.password || '').trim();
+  const phone = String(payload.phone || '').trim();
 
   if (!username) {
-    const error = new Error('Username is required');
+    const error = new Error('用户名不能为空');
     error.statusCode = 400;
     throw error;
   }
-  if (password.length < 6) {
-    const error = new Error('Password must be at least 6 characters');
+  if (password.length < PASSWORD_MIN_LENGTH || password.length > PASSWORD_MAX_LENGTH) {
+    const error = new Error(`密码长度需为 ${PASSWORD_MIN_LENGTH}-${PASSWORD_MAX_LENGTH} 位`);
+    error.statusCode = 400;
+    throw error;
+  }
+  if (!PASSWORD_PATTERN.test(password)) {
+    const error = new Error('密码只能包含中文、字母、数字、下划线和连字符');
+    error.statusCode = 400;
+    throw error;
+  }
+  if (phone && !/^1[3-9]\d{9}$/.test(phone)) {
+    const error = new Error('手机号格式不正确');
     error.statusCode = 400;
     throw error;
   }
@@ -51,25 +68,35 @@ export async function register(payload, config) {
 
   const [existing] = await pool.query(FIND_USER_BY_USERNAME, [username]);
   if (existing.length) {
-    const error = new Error('Username already exists');
+    const error = new Error('用户名已存在');
     error.statusCode = 409;
     throw error;
+  }
+
+  if (phone) {
+    const [phoneRows] = await pool.query(FIND_USER_BY_PHONE, [phone]);
+    if (phoneRows.length) {
+      const error = new Error('手机号已被注册');
+      error.statusCode = 409;
+      throw error;
+    }
   }
 
   const nickname = String(payload.nickname || username).trim();
   const avatar = String(payload.avatar || '').trim();
 
-  const [result] = await pool.query(INSERT_USER, [username, password]);
+  const [result] = await pool.query(INSERT_USER, [username, password, phone]);
   const userId = result.insertId;
+  const userNo = `U${String(userId).padStart(6, '0')}`;
 
-  await pool.query(INSERT_USER_PROFILE, [userId, nickname, avatar]);
+  await pool.query(INSERT_USER_PROFILE, [userId, userNo, nickname, avatar]);
 
   const token = signToken(
     makeTokenPayload(userId, { username, nickname }),
     config.jwtSecret,
   );
 
-  return { token, user_id: userId, username, nickname };
+  return { token, user_id: userId, user_no: userNo, username, phone, nickname };
 }
 
 /**
