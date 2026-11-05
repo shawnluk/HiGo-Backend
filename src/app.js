@@ -27,6 +27,13 @@ const PUBLIC_PATHS = [
   '/api/v1/moment/posts',
 ];
 
+/** 登录可选接口：携带 token 时解析用户，未携带/无效时按匿名访问继续 */
+const OPTIONAL_AUTH_PATTERNS = [/^\/api\/v1\/activities\/\d+\/views$/];
+
+function isOptionalAuth(pathname) {
+  return OPTIONAL_AUTH_PATTERNS.some((pattern) => pattern.test(pathname));
+}
+
 function registerRoutes(router) {
   router.get('/health', ({ res }) => {
     ok(res, {
@@ -87,8 +94,11 @@ export function createApp(config = getConfig()) {
         const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
         req.user = verifyToken(token, config.jwtSecret);
       } catch (error) {
-        fail(res, error.statusCode || 401, error.message);
-        return;
+        // 热度上报允许匿名访问：鉴权失败时降级为匿名，不回 401
+        if (!isOptionalAuth(requestUrl.pathname)) {
+          fail(res, error.statusCode || 401, error.message);
+          return;
+        }
       }
     }
     const route = router.match(req.method, requestUrl.pathname);

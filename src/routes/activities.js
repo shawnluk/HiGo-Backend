@@ -1,5 +1,5 @@
 import { ok } from '../lib/http.js';
-import { createActivity, getActivityDetail, listActivities } from '../services/activity-service.js';
+import { createActivity, getActivityDetail, listActivities, reportActivityView } from '../services/activity-service.js';
 
 /**
  * 注册活动相关的路由。
@@ -22,5 +22,16 @@ export function registerActivityRoutes(router) {
 
   router.post('/api/v1/activities', async ({ body, req, res }) => {
     ok(res, await createActivity(body, req.user), 'created', 201);
+  });
+
+  // 上报活动浏览热度：已登录按 user_id 去重，未登录按 body.device_id 去重
+  router.post('/api/v1/activities/:id/views', async ({ params, body, req, res }) => {
+    ok(
+      res,
+      await reportActivityView(params.id, {
+        userId: req.user?.sub,
+        deviceId: body?.device_id,
+      }),
+    );
   });
 }

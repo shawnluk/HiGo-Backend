@@ -1,5 +1,5 @@
 import { getPool } from '../lib/db.js';
-import { GET_ACTIVITY_BY_ID, GET_SQUAD_BY_ID, GET_SQUADS_BY_IDS, INSERT_ACTIVITY, LIST_ACTIVITIES, LIST_ACTIVITIES_BY_SQUAD_IDS, LIST_ACTIVITY_MEMBERS_BY_IDS } from '../db/queries.js';
+import { GET_ACTIVITY_BY_ID, GET_SQUAD_BY_ID, GET_SQUADS_BY_IDS, INC_ACTIVITY_HOT, INSERT_ACTIVITY, INSERT_ACTIVITY_VIEW, LIST_ACTIVITIES, LIST_ACTIVITIES_BY_SQUAD_IDS, LIST_ACTIVITY_MEMBERS_BY_IDS } from '../db/queries.js';
 import { getCategoryById } from './category-service.js';
 import { getSquadById } from './squad-service.js';
 
@@ -215,7 +215,69 @@ export async function getActivityDetail(activityId) {
     }
   }
 
+  // 带出报名成员（含头像），供详情页「已报名」区域展示头像与人数
+  const [memberRows] = await pool.query(LIST_ACTIVITY_MEMBERS_BY_IDS, [id]);
+  activity.members = memberRows.map((row) => ({
+    user_id: row.user_id,
+    nickname: row.nickname || '',
+    avatar: row.avatar || '',
+  }));
+  activity.member_count = activity.members.length;
+
   return activity;
+}
+
+/**
+ * 上报一次活动浏览（热度 +1），同一用户/设备对同一活动只计一次。
+ * @param {number|string} activityId 活动 ID
+ * @param {{userId?: number|string, deviceId?: string}} [visitor] 访问者信息：
+ *  - userId 已登录用户 ID（优先使用）
+ *  - deviceId 未登录用户的设备标识
+ * @returns {Promise<{hot: number, added: boolean}>} hot 当前热度，added 本次是否为新增计数
+ * @throws {Error} 400 —— 活动 ID 非法或未提供 userId/deviceId；404 —— 活动不存在
+ * @description 用户维度与设备维度分别由 activity_views 的唯一索引去重：
+ * 已登录写入 user_id（device_id 为 NULL），未登录写入 device_id（user_id 为 NULL），
+ * INSERT IGNORE 返回 affectedRows=0 表示重复访问，不增加热度。
+ */
+export async function reportActivityView(activityId, visitor = {}) {
+  const id = toPositiveInt(activityId, 0);
+  if (!id) {
+    const error = new Error(`Invalid activity id: ${activityId}`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const userId = toPositiveInt(visitor.userId, 0);
+  const deviceId = String(visitor.deviceId || '').trim().slice(0, 64);
+  if (!userId && !deviceId) {
+    const error = new Error('userId or device_id is required');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const pool = getPool();
+  const [rows] = await pool.query(GET_ACTIVITY_BY_ID, [id]);
+  if (!rows.length) {
+    const error = new Error(`Activity not found: ${id}`);
+    error.statusCode = 404;
+    throw error;
+  }
+
+  // 每个维度只写一个去重键，另一维度留 NULL，避免唯一索引把不同访问者误判为同一人
+  const [result] = await pool.query(INSERT_ACTIVITY_VIEW, [
+    id,
+    userId || null,
+    userId ? null : (deviceId || null),
+  ]);
+  const added = (result.affectedRows || 0) > 0;
+  if (added) await pool.query(INC_ACTIVITY_HOT, [id]);
+
+  // 重新读取，避免并发上报时返回过期热度
+  const [latest] = await pool.query(GET_ACTIVITY_BY_ID, [id]);
+  return {
+    hot: Number(latest[0]?.hot) || 0,
+    added,
+  };
 }
 
 /**

@@ -16,6 +16,19 @@ export const GET_ACTIVITY_BY_ID = `
   WHERE activity_id = ?
 `;
 
+// 记录一次活动浏览；唯一索引 (activity_id, user_id) / (activity_id, device_id) 保证重复点击不重复计数
+export const INSERT_ACTIVITY_VIEW = `
+  INSERT IGNORE INTO activity_views (activity_id, user_id, device_id, create_time)
+  VALUES (?, ?, ?, NOW())
+`;
+
+// 活动热度 +1，仅在新增浏览记录时调用
+export const INC_ACTIVITY_HOT = `
+  UPDATE activities
+  SET hot = hot + 1
+  WHERE activity_id = ?
+`;
+
 // 新增一条活动记录，status 默认 0（待发布）
 export const INSERT_ACTIVITY = `
   INSERT INTO activities
