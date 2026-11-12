@@ -1,6 +1,5 @@
 import { ok } from '../lib/http.js';
 import {
-  assertSquadMemberAccess,
   createSquad,
   getSquadDetail,
   joinSquad,
@@ -16,8 +15,8 @@ import {
  * - GET `/api/v1/squads` → 调用 squad-service 的 `listSquads`，按查询参数返回小队列表。
  * - GET `/api/v1/squads/mine` → 调用 squad-service 的 `listMySquads`，
  *   返回当前用户（取 query.user_id，缺省用 req.user.sub）加入的小队列表。
- * - GET `/api/v1/squads/:id` → 先经 squad-service 的 `assertSquadMemberAccess` 校验成员权限，
- *   再调用 `getSquadDetail` 返回小队详情。
+ * - GET `/api/v1/squads/:id` → 调用 squad-service 的 `getSquadDetail` 返回小队详情；
+ *   详情对已登录用户开放（含非成员），便于前端展示并支持加入小队。
  * - POST `/api/v1/squads` → 调用 squad-service 的 `createSquad`，由当前用户创建新小队，返回 201（created）。
  * - POST `/api/v1/squads/:id/join` → 调用 squad-service 的 `joinSquad`，加入指定小队。
  * - POST `/api/v1/squads/:id/leave` → 调用 squad-service 的 `leaveSquad`，退出指定小队。
@@ -35,8 +34,7 @@ export function registerSquadRoutes(router) {
     ok(res, await listMySquads(userId));
   });
 
-  router.get('/api/v1/squads/:id', async ({ params, req, res }) => {
-    await assertSquadMemberAccess(params.id, req.user);
+  router.get('/api/v1/squads/:id', async ({ params, res }) => {
     ok(res, await getSquadDetail(params.id));
   });
 
