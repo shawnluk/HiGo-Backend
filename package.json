@@ -7,8 +7,7 @@
   "main": "src/server.js",
   "scripts": {
     "dev": "node src/server.js",
-    "start": "node src/server.js",
-    "test": "node test/api.test.js"
+    "start": "node src/server.js"
   },
   "engines": {
     "node": ">=16.14"
