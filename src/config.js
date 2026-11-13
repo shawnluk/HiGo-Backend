@@ -16,6 +16,10 @@ function numberFromEnv(value, fallback) {
  * - `dbUser`：数据库用户名，来自 `DB_USER`，缺省为 `root`。
  * - `dbPassword`：数据库密码，来自 `DB_PASSWORD`，缺省为空字符串。
  * - `dbName`：数据库名称，来自 `DB_NAME`，缺省为 `unitone`。
+ * - `cosSecretId`：腾讯云 COS SecretId，来自 `COS_SECRET_ID`，缺省为空字符串。
+ * - `cosSecretKey`：腾讯云 COS SecretKey，来自 `COS_SECRET_KEY`，缺省为空字符串。
+ * - `cosBucket`：COS 存储桶名称，来自 `COS_BUCKET`，缺省为 `unitone-1310134019`。
+ * - `cosRegion`：COS 地域，来自 `COS_REGION`，缺省为 `ap-guangzhou`。
  *
  * @param {NodeJS.ProcessEnv} [env] 环境变量对象，缺省为 process.env。
  * @returns {object} 解析后的应用配置对象。
@@ -33,5 +37,9 @@ export function getConfig(env = process.env) {
     dbUser: env.DB_USER || 'root',
     dbPassword: env.DB_PASSWORD || '',
     dbName: env.DB_NAME || 'unitone',
+    cosSecretId: env.COS_SECRET_ID || '',
+    cosSecretKey: env.COS_SECRET_KEY || '',
+    cosBucket: env.COS_BUCKET || 'unitone-1310134019',
+    cosRegion: env.COS_REGION || 'ap-guangzhou',
   };
 }

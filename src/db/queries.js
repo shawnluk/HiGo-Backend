@@ -62,9 +62,9 @@ export const LIST_CATEGORIES = `
 // Users
 // ============================================
 
-// 按用户名查询用户的登录凭据（含密码哈希，用于注册查重与登录鉴权）
+// 按用户名查询用户的登录凭据（含密码哈希与手机号，用于注册查重与登录鉴权）
 export const FIND_USER_BY_USERNAME = `
-  SELECT user_id, username, password_hash
+  SELECT user_id, username, phone, password_hash
   FROM users
   WHERE username = ?
 `;
@@ -94,6 +94,41 @@ export const FIND_USER_PROFILE_BY_ID = `
   SELECT user_id, user_no, nickname, real_name, identity_card, avatar, gender,
          birthday, user_status, user_type, last_login_time, register_time, update_time, is_deleted
   FROM user_profiles
+  WHERE user_id = ?
+`;
+
+// 按用户 ID 查询账号基础信息（含手机号），用于资料修改后返回最新账号信息
+export const FIND_USER_BY_ID = `
+  SELECT user_id, username, phone
+  FROM users
+  WHERE user_id = ?
+`;
+
+// 更新用户手机号（phone 位于 users 表，非 user_profiles）
+export const UPDATE_USER_PHONE = `
+  UPDATE users
+  SET phone = ?
+  WHERE user_id = ?
+`;
+
+// 更新用户资料字段；{{set}} 由业务层按传入字段动态拼装 SET 子句，仅更新给定列
+export const UPDATE_USER_PROFILE = `
+  UPDATE user_profiles
+  SET {{set}}, update_time = NOW()
+  WHERE user_id = ?
+`;
+
+// 按用户 ID 查询密码哈希，用于修改密码时校验旧密码
+export const FIND_USER_PASSWORD_BY_ID = `
+  SELECT password_hash
+  FROM users
+  WHERE user_id = ?
+`;
+
+// 更新用户密码
+export const UPDATE_USER_PASSWORD = `
+  UPDATE users
+  SET password_hash = ?
   WHERE user_id = ?
 `;
 

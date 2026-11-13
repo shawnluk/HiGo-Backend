@@ -154,5 +154,12 @@ export async function login(credentials, config) {
     console.error('load user squads on login failed:', error.message);
   }
 
-  return { token, user_id: user.user_id, username: user.username, profile, squads };
+  return {
+    token,
+    user_id: user.user_id,
+    username: user.username,
+    phone: user.phone ?? '',
+    profile,
+    squads,
+  };
 }

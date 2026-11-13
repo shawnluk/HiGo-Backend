@@ -16,6 +16,8 @@ import { registerCategoryRoutes } from './routes/categories.js';
 import { registerMessageRoutes } from './routes/messages.js';
 import { registerMomentRoutes } from './routes/moment.js';
 import { registerSquadRoutes } from './routes/squads.js';
+import { registerUploadRoutes } from './routes/upload.js';
+import { registerUserRoutes } from './routes/user.js';
 import { verifyToken } from './lib/token.js';
 
 const PUBLIC_PATHS = [
@@ -49,6 +51,8 @@ function registerRoutes(router) {
   registerMessageRoutes(router);
   registerMomentRoutes(router);
   registerSquadRoutes(router);
+  registerUserRoutes(router);
+  registerUploadRoutes(router);
 }
 
 /**
