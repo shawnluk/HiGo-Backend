@@ -1,4 +1,32 @@
-.idea
-**/.DS_Store
+# 依赖
+node_modules/
 
+# 环境变量（保留示例文件）
 .env
+.env.*
+!.env.example
+
+# IDE / 编辑器
+.idea/
+.vscode/
+.trae/
+*.iml
+
+# 系统文件
+.DS_Store
+**/.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 测试覆盖率
+coverage/
+.nyc_output/
+
+# 本地临时文件
+.screenshots/
+*.tmp
