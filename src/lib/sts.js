@@ -187,7 +187,7 @@ export function buildCosUploadPolicy({ bucket, region, appid, prefix }) {
     statement: [
       {
         effect: 'allow',
-        action: ['name/cos:PutObject', 'name/cos:PostObject'],
+        action: ['name/cos:PutObject', 'name/cos:PostObject', 'name/cos:PutObjectACL'],
         resource: [`qcs::cos:${region}:uid/${appid}:${bucket}/${prefix}*`],
       },
     ],

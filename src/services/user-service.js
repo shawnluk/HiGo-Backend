@@ -2,10 +2,12 @@ import { getPool } from '../lib/db.js';
 import {
   FIND_USER_BY_ID,
   FIND_USER_BY_PHONE,
+  FIND_USER_BY_EMAIL,
   FIND_USER_PASSWORD_BY_ID,
   FIND_USER_PROFILE_BY_ID,
   UPDATE_USER_PASSWORD,
   UPDATE_USER_PHONE,
+  UPDATE_USER_EMAIL,
   UPDATE_USER_PROFILE,
 } from '../db/queries.js';
 
@@ -14,11 +16,20 @@ const PASSWORD_MIN_LENGTH = 6;
 const PASSWORD_MAX_LENGTH = 10;
 const PASSWORD_PATTERN = /^[\u4e00-\u9fa5A-Za-z0-9_-]+$/;
 
+// 昵称规则：长度 1-20 位，仅允许中文、大小写字母、数字及下划线、连字符
+const NICKNAME_MIN_LENGTH = 1;
+const NICKNAME_MAX_LENGTH = 20;
+const NICKNAME_PATTERN = /^[\u4e00-\u9fa5A-Za-z0-9_-]+$/;
+
 // gender 取值：0=保密/未知, 1=男, 2=女
 const GENDER_VALUES = [0, 1, 2];
 
 // 头像校验：http/https URL，最长 500 字符（与 avatar VARCHAR(500) 对齐）
 const AVATAR_MAX_LENGTH = 500;
+
+// 邮箱校验：基础格式，最长 128 字符（与 email VARCHAR(128) 对齐）
+const EMAIL_MAX_LENGTH = 128;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // 允许用户自助更新的 user_profiles 字段：请求字段名 → 数据库列名
 // 注意：real_name（实名认证）、user_type / user_status / is_deleted / user_no / identity_card
@@ -49,18 +60,41 @@ function isValidHttpUrl(value) {
   }
 }
 
+// 返回 Asia/Shanghai 时区的今天日期（YYYY-MM-DD），用于生日上限比较
+function todayDateString() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+// 校验 YYYY-MM-DD 是否为真实存在的日历日期（排除 2025-02-31 这类格式合法但日期不存在的情况）
+function isRealDate(value) {
+  const [year, month, day] = value.split('-').map(Number);
+  const date = new Date(Date.UTC(2000, month - 1, day));
+  date.setUTCFullYear(year);
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
 /**
- * 更新当前用户的账号与资料信息（手机号、昵称、头像、生日、性别）。
+ * 更新当前用户的账号与资料信息（手机号、邮箱、昵称、头像、生日、性别）。
  * 支持按需部分更新：仅处理请求体中出现的字段，未出现的字段保持不变。
  * @param {number|string} userId 目标用户 ID（通常来自 token 的 req.user.sub）。
  * @param {Object} [payload] 可更新字段：
  *  - phone {string} 手机号，非空时需符合 1[3-9]xxxxxxxxx 且不与其它账号冲突
- *  - nickname {string} 昵称（非空）
+ *  - email {string} 邮箱，非空时需符合基础邮箱格式且不与其它账号冲突
+ *  - nickname {string} 昵称，1-20 位，仅允许中文、字母、数字、下划线和连字符
  *  - avatar {string} 头像（URL 或 base64 图片数据，见 AVATAR 校验规则）
- *  - birthday {string} 生日，格式 YYYY-MM-DD，可空
+ *  - birthday {string} 生日，格式 YYYY-MM-DD，必须早于今天，可空
  *  - gender {number|string} 性别，取值 0=保密/未知、1=男、2=女
- * @returns {Promise<{user_id: number, phone: string, profile: Object}>} 更新后的账号与资料。
- * @throws {Error} 400（参数非法）/ 401（未登录）/ 409（手机号已被占用）。
+ * @returns {Promise<{user_id: number, phone: string, email: string, profile: Object}>} 更新后的账号与资料。
+ * @throws {Error} 400（参数非法）/ 401（未登录）/ 409（手机号或邮箱已被占用）。
  */
 export async function updateProfile(userId, payload = {}) {
   const id = toPositiveInt(userId, 0);
@@ -72,9 +106,12 @@ export async function updateProfile(userId, payload = {}) {
 
   const pool = getPool();
 
+  // ===== 第一阶段：只做格式校验与查重，不写库，避免部分字段先落库 =====
+
   // 手机号位于 users 表，单独处理：格式校验 + 查重（排除自身）
+  let phone;
   if (payload.phone !== undefined) {
-    const phone = String(payload.phone || '').trim();
+    phone = String(payload.phone || '').trim();
     if (phone && !/^1[3-9]\d{9}$/.test(phone)) {
       const error = new Error('手机号格式不正确');
       error.statusCode = 400;
@@ -88,7 +125,25 @@ export async function updateProfile(userId, payload = {}) {
         throw error;
       }
     }
-    await pool.query(UPDATE_USER_PHONE, [phone, id]);
+  }
+
+  // 邮箱同样位于 users 表：格式校验 + 查重（排除自身）
+  let email;
+  if (payload.email !== undefined) {
+    email = String(payload.email || '').trim();
+    if (email) {
+      if (email.length > EMAIL_MAX_LENGTH || !EMAIL_PATTERN.test(email)) {
+        const error = new Error('邮箱格式不正确');
+        error.statusCode = 400;
+        throw error;
+      }
+      const [rows] = await pool.query(FIND_USER_BY_EMAIL, [email]);
+      if (rows.some((row) => Number(row.user_id) !== id)) {
+        const error = new Error('邮箱已被其他账号使用');
+        error.statusCode = 409;
+        throw error;
+      }
+    }
   }
 
   // 资料字段位于 user_profiles 表，动态拼装 SET 子句做部分更新
@@ -111,10 +166,23 @@ export async function updateProfile(userId, payload = {}) {
 
     if (field === 'birthday') {
       const birthday = String(value || '').trim();
-      if (birthday && !/^\d{4}-\d{2}-\d{2}$/.test(birthday)) {
-        const error = new Error('生日格式应为 YYYY-MM-DD');
-        error.statusCode = 400;
-        throw error;
+      if (birthday) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(birthday)) {
+          const error = new Error('生日格式应为 YYYY-MM-DD');
+          error.statusCode = 400;
+          throw error;
+        }
+        if (!isRealDate(birthday)) {
+          const error = new Error('生日不是有效日期');
+          error.statusCode = 400;
+          throw error;
+        }
+        // 生日只能早于今天（严格早于，不含今天）
+        if (birthday >= todayDateString()) {
+          const error = new Error('生日必须早于今天');
+          error.statusCode = 400;
+          throw error;
+        }
       }
       setParts.push(`${column} = ?`);
       setParams.push(birthday || null);
@@ -141,15 +209,35 @@ export async function updateProfile(userId, payload = {}) {
     }
 
     const text = String(value ?? '').trim();
-    if (field === 'nickname' && !text) {
-      const error = new Error('昵称不能为空');
-      error.statusCode = 400;
-      throw error;
+    if (field === 'nickname') {
+      if (!text) {
+        const error = new Error('昵称不能为空');
+        error.statusCode = 400;
+        throw error;
+      }
+      if (text.length > NICKNAME_MAX_LENGTH) {
+        const error = new Error(`昵称长度需为 ${NICKNAME_MIN_LENGTH}-${NICKNAME_MAX_LENGTH} 个字符`);
+        error.statusCode = 400;
+        throw error;
+      }
+      if (!NICKNAME_PATTERN.test(text)) {
+        const error = new Error('昵称只能包含中文、字母、数字、下划线和连字符');
+        error.statusCode = 400;
+        throw error;
+      }
     }
     setParts.push(`${column} = ?`);
     setParams.push(text);
   }
 
+  // ===== 第二阶段：全部校验通过后再统一写库 =====
+
+  if (payload.phone !== undefined) {
+    await pool.query(UPDATE_USER_PHONE, [phone, id]);
+  }
+  if (payload.email !== undefined) {
+    await pool.query(UPDATE_USER_EMAIL, [email, id]);
+  }
   if (setParts.length) {
     const sql = UPDATE_USER_PROFILE.replace('{{set}}', setParts.join(', '));
     await pool.query(sql, [...setParams, id]);
@@ -162,6 +250,7 @@ export async function updateProfile(userId, payload = {}) {
   return {
     user_id: id,
     phone: users[0]?.phone ?? '',
+    email: users[0]?.email ?? '',
     profile: profiles[0] || {},
   };
 }

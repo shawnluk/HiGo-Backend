@@ -62,9 +62,9 @@ export const LIST_CATEGORIES = `
 // Users
 // ============================================
 
-// 按用户名查询用户的登录凭据（含密码哈希与手机号，用于注册查重与登录鉴权）
+// 按用户名查询用户的登录凭据（含密码哈希、手机号与邮箱，用于注册查重与登录鉴权）
 export const FIND_USER_BY_USERNAME = `
-  SELECT user_id, username, phone, password_hash
+  SELECT user_id, username, phone, email, password_hash
   FROM users
   WHERE username = ?
 `;
@@ -76,10 +76,17 @@ export const FIND_USER_BY_PHONE = `
   WHERE phone = ? AND phone <> ''
 `;
 
-// 创建用户账号记录（手机号为可选字段）
+// 按邮箱查询用户，用于注册/修改资料时邮箱查重
+export const FIND_USER_BY_EMAIL = `
+  SELECT user_id
+  FROM users
+  WHERE email = ? AND email <> ''
+`;
+
+// 创建用户账号记录（手机号、邮箱为可选字段）
 export const INSERT_USER = `
-  INSERT INTO users (username, password_hash, phone)
-  VALUES (?, ?, ?)
+  INSERT INTO users (username, password_hash, phone, email)
+  VALUES (?, ?, ?, ?)
 `;
 
 // 为用户创建对应资料记录，register_time 取当前时间
@@ -97,9 +104,9 @@ export const FIND_USER_PROFILE_BY_ID = `
   WHERE user_id = ?
 `;
 
-// 按用户 ID 查询账号基础信息（含手机号），用于资料修改后返回最新账号信息
+// 按用户 ID 查询账号基础信息（含手机号与邮箱），用于资料修改后返回最新账号信息
 export const FIND_USER_BY_ID = `
-  SELECT user_id, username, phone
+  SELECT user_id, username, phone, email
   FROM users
   WHERE user_id = ?
 `;
@@ -108,6 +115,13 @@ export const FIND_USER_BY_ID = `
 export const UPDATE_USER_PHONE = `
   UPDATE users
   SET phone = ?
+  WHERE user_id = ?
+`;
+
+// 更新用户邮箱（email 位于 users 表，非 user_profiles）
+export const UPDATE_USER_EMAIL = `
+  UPDATE users
+  SET email = ?
   WHERE user_id = ?
 `;
 
