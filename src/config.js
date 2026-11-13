@@ -3,6 +3,14 @@ function numberFromEnv(value, fallback) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
 }
 
+function requiredEnv(env, key) {
+  const value = String(env[key] || '').trim();
+  if (!value) {
+    throw new Error(`缺少必需的环境变量 ${key}，请在 .env 中配置`);
+  }
+  return value;
+}
+
 /**
  * 从环境变量中读取并生成应用配置对象。
  * 返回的字段含义如下：
@@ -10,7 +18,7 @@ function numberFromEnv(value, fallback) {
  * - `host`：服务监听地址，来自 `HOST`，缺省为 `0.0.0.0`。
  * - `port`：服务监听端口，来自 `PORT`（须为正数），缺省为 3000。
  * - `corsOrigin`：允许的跨域来源，来自 `CORS_ORIGIN`，缺省为 `*`。
- * - `jwtSecret`：JWT 签名密钥，来自 `JWT_SECRET`，缺省为 `unitone-dev-secret`。
+ * - `jwtSecret`：JWT 签名密钥，来自 `JWT_SECRET`，必填，缺失时启动报错。
  * - `dbHost`：数据库主机，来自 `DB_HOST`，缺省为 `localhost`。
  * - `dbPort`：数据库端口，来自 `DB_PORT`（须为正数），缺省为 3306。
  * - `dbUser`：数据库用户名，来自 `DB_USER`，缺省为 `root`。
@@ -31,7 +39,7 @@ export function getConfig(env = process.env) {
     host: env.HOST || '0.0.0.0',
     port: numberFromEnv(env.PORT, 3000),
     corsOrigin: env.CORS_ORIGIN || '*',
-    jwtSecret: env.JWT_SECRET || 'unitone-dev-secret',
+    jwtSecret: requiredEnv(env, 'JWT_SECRET'),
     dbHost: env.DB_HOST || 'localhost',
     dbPort: numberFromEnv(env.DB_PORT, 3306),
     dbUser: env.DB_USER || 'root',
