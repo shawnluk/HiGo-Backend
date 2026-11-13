@@ -24,14 +24,15 @@ function hmacSha256(key, value) {
  * 计算腾讯云 API 3.0（TC3-HMAC-SHA256）签名的 Authorization 头。
  * @returns {string} Authorization 头值
  */
-function signTc3({ secretId, secretKey, host, service, action, payload, timestamp }) {
+function signTc3({ secretId, secretKey, host, service, action, payload, timestamp, region }) {
   const date = new Date(timestamp * 1000).toISOString().slice(0, 10);
 
   const canonicalHeaders =
     `content-type:application/json; charset=utf-8\n` +
     `host:${host}\n` +
-    `x-tc-action:${action.toLowerCase()}\n`;
-  const signedHeaders = 'content-type;host;x-tc-action';
+    `x-tc-action:${action.toLowerCase()}\n` +
+    `x-tc-region:${region}\n`;
+  const signedHeaders = 'content-type;host;x-tc-action;x-tc-region';
   const hashedPayload = sha256Hex(payload);
 
   const canonicalRequest = [
@@ -65,7 +66,7 @@ function signTc3({ secretId, secretKey, host, service, action, payload, timestam
  * 调用腾讯云 STS API（原生 https）。
  * @returns {Promise<object>} STS 返回的完整 JSON 对象
  */
-function requestSts({ secretId, secretKey, payload }) {
+function requestSts({ secretId, secretKey, payload, region }) {
   const timestamp = Math.floor(Date.now() / 1000);
   const body = JSON.stringify(payload);
   const authorization = signTc3({
@@ -76,6 +77,7 @@ function requestSts({ secretId, secretKey, payload }) {
     action: STS_ACTION,
     payload: body,
     timestamp,
+    region,
   });
 
   const options = {
@@ -89,6 +91,7 @@ function requestSts({ secretId, secretKey, payload }) {
       'X-TC-Action': STS_ACTION,
       'X-TC-Timestamp': String(timestamp),
       'X-TC-Version': STS_VERSION,
+      'X-TC-Region': region,
       'Content-Length': Buffer.byteLength(body),
     },
   };
@@ -128,6 +131,7 @@ function requestSts({ secretId, secretKey, payload }) {
  * @param {object} options
  * @param {string} options.secretId 腾讯云主账号 SecretId
  * @param {string} options.secretKey 腾讯云主账号 SecretKey
+ * @param {string} options.region 地域（如 ap-guangzhou）
  * @param {string} options.name 临时凭证名称
  * @param {object} options.policy 授权策略对象（限定 Bucket/路径/操作）
  * @param {number} [options.durationSeconds=1800] 有效期（秒）
@@ -136,6 +140,7 @@ function requestSts({ secretId, secretKey, payload }) {
 export async function getCosCredentials({
   secretId,
   secretKey,
+  region,
   name,
   policy,
   durationSeconds = 1800,
@@ -143,6 +148,7 @@ export async function getCosCredentials({
   const result = await requestSts({
     secretId,
     secretKey,
+    region,
     payload: {
       Name: name,
       Policy: JSON.stringify(policy),

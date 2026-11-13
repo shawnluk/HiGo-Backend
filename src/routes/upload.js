@@ -41,6 +41,7 @@ export function registerUploadRoutes(router) {
     const credentials = await getCosCredentials({
       secretId: cosSecretId,
       secretKey: cosSecretKey,
+      region: cosRegion,
       name: `unitone-avatar-${userId}`,
       policy,
       durationSeconds: CREDENTIALS_EXPIRES,
